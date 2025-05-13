@@ -8,10 +8,34 @@
     </head>
 
     <body>
+        <form id="form">
+            <input type="text" id="nickname" placeholder="nickname" required />
+            <input type="text" id="password" placeholder="password" required />
+            <button type="submit">Enter</button>
+        </form>
+
+        <div id="verified" style="display: none;">
+            Logged in!
+        </div>
 
         <script src="/socket.io/socket.io.js"></script>
         <script>
             const socket = io();
+
+            document.getElementById('form').addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const nickname = document.getElementById('nickname').value;
+                const password = document.getElementById('password').value;
+                if (nickname && nickname.trim()) {
+                    socket.emit('user', { nickname, password });
+                }
+            })
+
+            socket.on('logged-in', () => {
+                document.getElementById("form").style.display = "none";
+                document.getElementById("verified").style.display = "block";
+            })
         </script>
     </body>
 </html>

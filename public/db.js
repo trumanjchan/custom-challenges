@@ -3,7 +3,7 @@ dotenv.config();
 import fs from 'fs';
 import mysql from 'mysql2';
 
-const connection = mysql.createConnection({
+const db = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
@@ -13,7 +13,7 @@ const connection = mysql.createConnection({
     }
 })
 
-connection.connect((err) => {
+db.connect((err) => {
     if (err) {
         console.error('MySQL connection error:', err);
         return;
@@ -21,4 +21,4 @@ connection.connect((err) => {
     console.log('Connected to MySQL database.');
 });
 
-export default connection;
+export default db;
