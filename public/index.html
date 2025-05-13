@@ -16,11 +16,13 @@
 
         <div id="verified" style="display: none;">
             <button onclick="challenge()">Challenge</button>
+            <div id="all-users"></div>
         </div>
 
         <script src="/socket.io/socket.io.js"></script>
         <script>
             const socket = io();
+            var verified = false;
 
             document.getElementById('form').addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -33,17 +35,38 @@
             })
 
             function challenge() {
-                let title = window.prompt("Activity title");
-                let challenge = window.prompt("Describe the challenge");
-                let poster = document.getElementById('nickname').value;
-                let opponent = window.prompt("Who are you challenging?");
+                if (verified) {
+                    let title = window.prompt("Activity title");
+                    let challenge = window.prompt("Describe the challenge");
+                    let poster = document.getElementById('nickname').value;
+                    let opponent = window.prompt("Who are you challenging?");
 
-                socket.emit('challenge', { title, challenge, poster, opponent });
+                    socket.emit('challenge', { title, challenge, poster, opponent });
+                }
             }
 
-            socket.on('logged-in', () => {
+            socket.on('logged-in', (nickname) => {
+                verified = true;
                 document.getElementById("form").style.display = "none";
                 document.getElementById("verified").style.display = "block";
+
+                fetch(`/all-users`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(`/all-users`);
+                        console.log(data);
+
+                        const container = document.getElementById('all-users');
+                        data.forEach(user => {
+                            if (user.name === nickname) {
+                                return
+                            }
+                            const div = document.createElement('div');
+                            div.textContent = user.name;
+                            container.appendChild(div);
+                        });
+                    })
+                    .catch(error => console.error(`Error fetching /all-users :`, error));
             })
         </script>
     </body>

@@ -12,59 +12,16 @@ const port = 3000;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 
-const createUsersTableSQL = `
-  CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(20) UNIQUE NOT NULL,
-    password INT(4) NOT NULL
-  );
-`;
-db.query(createUsersTableSQL, (err) => {
-    if (err) {
-        console.error('Error creating users table:', err);
-    } else {
-        console.log('Users table confirmed.');
-    }
-});
-
-const createChallengesTableSQL = `
-  CREATE TABLE IF NOT EXISTS challenges (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(20) NOT NULL,
-    activity VARCHAR(20) NOT NULL
-  );
-`;
-db.query(createChallengesTableSQL, (err) => {
-    if (err) {
-        console.error('Error creating challenges table:', err);
-    } else {
-        console.log('Challenges table confirmed.');
-    }
-});
-
-const createChallengeUserTableSQL = `
-  CREATE TABLE IF NOT EXISTS challenge_user (
-    user_id INT NOT NULL,
-    challenge_id INT NOT NULL,
-    role ENUM('poster', 'opponent') NOT NULL,
-    PRIMARY KEY (user_id, challenge_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE
-  );
-`;
-db.query(createChallengeUserTableSQL, (err) => {
-    if (err) {
-        console.error('Error creating challenge_user table:', err);
-    } else {
-        console.log('Challenge_user table confirmed.');
-    }
-});
-
-
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
     res.sendFile(join(__dirname, 'public/index.html'));
+});
+
+app.get('/all-users', (req, res) => {
+    db.query(`SELECT name FROM users ORDER BY id ASC`, (err, results) => {
+        res.json(results);
+    });
 });
 
 io.on('connection', (socket) => {
@@ -77,7 +34,7 @@ io.on('connection', (socket) => {
             console.log(results);
 
             if (results.length > 0) {
-                socket.emit('logged-in');
+                socket.emit('logged-in', data.nickname);
                 console.log('User signed in!')
             } else {
                 db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [data.nickname, data.password], (err, results) => {
@@ -85,7 +42,7 @@ io.on('connection', (socket) => {
                         console.error('Error inserting user:', err);
                         return
                     } else {
-                        socket.emit('logged-in');
+                        socket.emit('logged-in', data.nickname);
                         console.log('Added user, and logged in!');
                     }
                 })
