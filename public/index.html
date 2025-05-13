@@ -7,20 +7,23 @@
         <link rel="stylesheet" href="/styles.css">
     </head>
 
-    <body>
-        <form id="form">
-            <input type="text" id="nickname" placeholder="nickname" required />
-            <input type="text" id="password" placeholder="password" required />
-            <button type="submit">Enter</button>
-        </form>
+    <body style="display: flex; flex-direction: row;">
+        <div style="width: 50%;">
+            <form id="form">
+                <input type="text" id="nickname" placeholder="nickname" required />
+                <input type="text" id="password" placeholder="password" required />
+                <button type="submit">Enter</button>
+            </form>
 
-        <div id="welcome"></div>
+            <div id="welcome"></div>
 
-        <div id="verified" style="display: none;">
-            <button onclick="challenge()">Challenge</button>
+            <div id="verified" style="display: none;">
+                <button onclick="challenge()"">Challenge</button>
+            </div>
+
+            <div id="all-users" style="margin-top: 30px;"></div>
         </div>
-
-        <div id="all-users"></div>
+        <div id="my-challenges" style="width: 50%;"></div>
 
 
         <script src="/socket.io/socket.io.js"></script>
@@ -37,6 +40,17 @@
                     socket.emit('user', { nickname, password });
                 }
             })
+
+            function challenge() {
+                if (verified) {
+                    let title = window.prompt("Activity title");
+                    let challenge = window.prompt("Describe the challenge");
+                    let poster = document.getElementById('nickname').value;
+                    let opponent = window.prompt("Who are you challenging?");
+
+                    socket.emit('challenge', { title, challenge, poster, opponent });
+                }
+            }
 
             function displayUsersList(nickname) {
                 fetch(`/all-users`)
@@ -56,15 +70,39 @@
                     .catch(error => console.error(`Error fetching /all-users :`, error));
             }
 
-            function challenge() {
-                if (verified) {
-                    let title = window.prompt("Activity title");
-                    let challenge = window.prompt("Describe the challenge");
-                    let poster = document.getElementById('nickname').value;
-                    let opponent = window.prompt("Who are you challenging?");
+            function displayMyChallenges(nickname) {
+                fetch(`/${nickname}/challenges`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data)
+                        const myChallenges = document.getElementById('my-challenges');
+                        myChallenges.innerHTML = '';
 
-                    socket.emit('challenge', { title, challenge, poster, opponent });
-                }
+                        data.forEach(challenge => {
+                            let container = document.createElement('div');
+                            container.className = "challenge";
+
+                            let div1 = document.createElement('div');
+                            div1.textContent = challenge.title;
+                            container.appendChild(div1);
+
+                            let div2 = document.createElement('div');
+                            div2.textContent = challenge.activity;
+                            container.appendChild(div2);
+
+                            let div3 = document.createElement('div');
+                            div3.textContent = "OP/Assignee: " + challenge.players.map(player => player.name).join(', ');
+                            container.appendChild(div3);
+
+                            let button = document.createElement('button');
+                            button.innerHTML = "Done";
+                            button.className = "challenge-done";
+                            container.appendChild(button);
+
+                            myChallenges.appendChild(container);
+                        });
+                    })
+                    .catch(error => console.error(`Error fetching /${nickname}/challenges :`, error));
             }
 
             socket.on('display-all-users', () => {
@@ -78,6 +116,7 @@
                 document.getElementById("welcome").innerText = "Welcome, " + nickname + "!";
 
                 displayUsersList(nickname);
+                displayMyChallenges(nickname);
             })
         </script>
     </body>

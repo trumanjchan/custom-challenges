@@ -24,6 +24,34 @@ app.get('/all-users', (req, res) => {
     });
 });
 
+app.get('/:nickname/challenges', async (req, res) => {
+    try {
+        const [userResults] = await db.promise().query(`SELECT id FROM users WHERE name = ?`, [req.params.nickname]);
+        let userId = userResults[0].id;
+
+        const [userChallenges] = await db.promise().query(`SELECT * FROM challenge_user WHERE user_id = ?`, [userId]);
+        let challengeIds = userChallenges.map(row => row.challenge_id);
+
+        const fullData = await Promise.all(
+            challengeIds.map(async (challengeId) => {
+                const [challengeResults] = await db.promise().query(`SELECT * FROM challenges WHERE id = ?`, [challengeId]);
+
+                let id = challengeResults[0].id;
+                let title = challengeResults[0].title;
+                let activity = challengeResults[0].activity;
+                const [playerResults] = await db.promise().query(`SELECT u.name, cu.role FROM challenge_user cu JOIN users u ON cu.user_id = u.id WHERE cu.challenge_id = ?`, [id]);
+
+                return { title, activity, players: playerResults };
+            })
+        );
+
+        res.json(fullData);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
 io.on('connection', (socket) => {
     console.log('a user connected: ' + socket.id);
     socket.emit('display-all-users');
