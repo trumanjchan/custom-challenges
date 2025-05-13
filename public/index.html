@@ -15,7 +15,7 @@
         </form>
 
         <div id="verified" style="display: none;">
-            Logged in!
+            <button onclick="challenge()">Challenge</button>
         </div>
 
         <script src="/socket.io/socket.io.js"></script>
@@ -31,6 +31,15 @@
                     socket.emit('user', { nickname, password });
                 }
             })
+
+            function challenge() {
+                let title = window.prompt("Activity title");
+                let challenge = window.prompt("Describe the challenge");
+                let poster = document.getElementById('nickname').value;
+                let opponent = window.prompt("Who are you challenging?");
+
+                socket.emit('challenge', { title, challenge, poster, opponent });
+            }
 
             socket.on('logged-in', () => {
                 document.getElementById("form").style.display = "none";
