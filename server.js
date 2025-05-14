@@ -127,6 +127,28 @@ io.on('connection', (socket) => {
         });
     })
 
+    socket.on('challenge-done', (data) => {
+        db.query(`SELECT id FROM challenges WHERE title = ?`, [data.challengeTitle], (err, results) => {
+            const challengeId = results[0].id;
+            db.query(`SELECT id FROM users WHERE name = ?`, [data.me], (err, results) => {
+                const myId = results[0].id;
+
+                db.query(`DELETE FROM challenge_user WHERE user_id = ? AND challenge_id = ?`, [myId, challengeId]);
+                socket.emit('display-my-challenges');
+                socket.broadcast.emit('display-my-challenges');
+
+                db.query(`SELECT * FROM challenge_user WHERE challenge_id = ?`, [challengeId], (err, results) => {
+                    if (results[0] === undefined) {
+                        db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
+                        console.log(`${data.me} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
+                    } else {
+                        console.log(`${data.me} completed ${data.challengeTitle}! Challenge still exists.`);
+                    }
+                });
+            });
+        });
+    })
+
     socket.on('disconnect', () => {
         console.log('user disconnected: ' + socket.id);
     });

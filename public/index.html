@@ -51,6 +51,14 @@
                     socket.emit('challenge', { title, challenge, poster, opponent });
                 }
             }
+            
+            function challengeDone(challengeTitle) {
+                if (verified) {
+                    let me = document.getElementById("nickname").value;
+
+                    socket.emit('challenge-done', { challengeTitle, me })
+                }
+            }
 
             function displayUsersList() {
                 fetch(`/all-users`)
@@ -97,7 +105,9 @@
 
                             let button = document.createElement('button');
                             button.innerHTML = "Done";
-                            button.className = "challenge-done";
+                            button.onclick = function() {
+                                challengeDone(challenge.title);
+                            };
                             container.appendChild(button);
 
                             myChallenges.appendChild(container);
