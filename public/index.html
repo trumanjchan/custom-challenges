@@ -18,7 +18,7 @@
             <div id="welcome"></div>
 
             <div id="verified" style="display: none;">
-                <button onclick="challenge()"">Challenge</button>
+                <button onclick="challenge()">Challenge</button>
             </div>
 
             <div id="all-users" style="margin-top: 30px;"></div>
@@ -52,14 +52,14 @@
                 }
             }
 
-            function displayUsersList(nickname) {
+            function displayUsersList() {
                 fetch(`/all-users`)
                     .then(response => response.json())
                     .then(data => {
                         const container = document.getElementById('all-users');
                         container.innerHTML = '';
                         data.forEach(user => {
-                            if (user.name === nickname) {
+                            if (user.name === document.getElementById("nickname").value) {
                                 return
                             }
                             const div = document.createElement('div');
@@ -70,7 +70,8 @@
                     .catch(error => console.error(`Error fetching /all-users :`, error));
             }
 
-            function displayMyChallenges(nickname) {
+            function displayMyChallenges() {
+                const nickname = document.getElementById("nickname").value;
                 fetch(`/${nickname}/challenges`)
                     .then(response => response.json())
                     .then(data => {
@@ -91,7 +92,7 @@
                             container.appendChild(div2);
 
                             let div3 = document.createElement('div');
-                            div3.textContent = "OP/Assignee: " + challenge.players.map(player => player.name).join(', ');
+                            div3.textContent = "Assignees: " + challenge.players.map(player => player.name).join(', ');
                             container.appendChild(div3);
 
                             let button = document.createElement('button');
@@ -109,14 +110,18 @@
                 displayUsersList();
             })
 
+            socket.on('display-my-challenges', () => {
+                displayMyChallenges();
+            })
+
             socket.on('logged-in', (nickname) => {
                 verified = true;
                 document.getElementById("form").style.display = "none";
                 document.getElementById("verified").style.display = "block";
                 document.getElementById("welcome").innerText = "Welcome, " + nickname + "!";
 
-                displayUsersList(nickname);
-                displayMyChallenges(nickname);
+                displayUsersList();
+                displayMyChallenges();
             })
         </script>
     </body>

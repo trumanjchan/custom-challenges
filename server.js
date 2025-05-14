@@ -53,8 +53,8 @@ app.get('/:nickname/challenges', async (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('a user connected: ' + socket.id);
     socket.emit('display-all-users');
+    console.log('a user connected: ' + socket.id);
 
     socket.on('user', (data) => {
         console.log(data);
@@ -71,8 +71,8 @@ io.on('connection', (socket) => {
                         console.error('Error inserting user:', err);
                         return
                     } else {
-                        socket.broadcast.emit('display-all-users');
                         socket.emit('logged-in', data.nickname);
+                        socket.broadcast.emit('display-all-users');
                         console.log('Added user, and logged in!');
                     }
                 })
@@ -109,6 +109,8 @@ io.on('connection', (socket) => {
                                         console.error('Error inserting opponent_challenge:', err);
                                         return
                                     } else {
+                                        socket.emit('display-my-challenges');
+                                        socket.broadcast.emit('display-my-challenges');
                                         console.log('Added opponent_challenge!');
                                     }
                                 });
