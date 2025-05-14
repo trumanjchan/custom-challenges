@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from "bcrypt";
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -10,6 +11,7 @@ const server = createServer(app);
 const io = new Server(server);
 const port = 3000;
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const saltRounds = 10;
 
 
 app.use(express.static('public'));
@@ -57,16 +59,19 @@ io.on('connection', (socket) => {
     console.log('a user connected: ' + socket.id);
 
     socket.on('user', (data) => {
-        console.log(data);
-        
-        db.query(`SELECT * FROM users WHERE name = ? AND password = ?`, [data.nickname, data.password], (err, results) => {
-            console.log(results);
+        var bool = false;
 
+        db.query(`SELECT * FROM users WHERE name = ?`, [data.nickname], (err, results) => {
             if (results.length > 0) {
-                socket.emit('logged-in', data.nickname);
-                console.log('User signed in!')
+                console.log(results);
+                bool = bcrypt.compareSync(data.password, results[0].password);
+                if (bool) {
+                    socket.emit('logged-in', data.nickname);
+                    console.log('User signed in!')
+                }
             } else {
-                db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [data.nickname, data.password], (err, results) => {
+                const hash = bcrypt.hashSync(data.password, saltRounds);
+                db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [data.nickname, hash], (err, results) => {
                     if (err) {
                         console.error('Error inserting user:', err);
                         return

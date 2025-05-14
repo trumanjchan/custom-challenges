@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import fs from 'fs';
 import mysql from 'mysql2';
 
 const db = mysql.createConnection({
@@ -24,7 +23,7 @@ const createUsersTableSQL = `
   CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(20) UNIQUE NOT NULL,
-    password INT(4) NOT NULL
+    password VARCHAR(60) NOT NULL
   );
 `;
 db.query(createUsersTableSQL, (err) => {
