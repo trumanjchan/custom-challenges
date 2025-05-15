@@ -22,7 +22,7 @@ db.connect((err) => {
 const createUsersTableSQL = `
   CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(20) UNIQUE NOT NULL,
+    name VARCHAR(20) CHARACTER SET utf8mb4 UNIQUE NOT NULL,
     password VARCHAR(60) NOT NULL
   );
 `;
@@ -37,8 +37,8 @@ db.query(createUsersTableSQL, (err) => {
 const createChallengesTableSQL = `
   CREATE TABLE IF NOT EXISTS challenges (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(20) NOT NULL,
-    activity VARCHAR(20) NOT NULL
+    title VARCHAR(32) NOT NULL,
+    activity VARCHAR(64) NOT NULL
   );
 `;
 db.query(createChallengesTableSQL, (err) => {

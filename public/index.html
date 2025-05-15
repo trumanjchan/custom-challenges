@@ -10,9 +10,12 @@
     <body style="display: flex; flex-direction: row;">
         <div style="width: 50%;">
             <form id="form">
-                <input type="text" id="nickname" placeholder="nickname" required />
-                <input type="text" id="password" placeholder="password" required />
-                <button type="submit">Enter</button>
+                <div>
+                    <input type="text" id="nickname" placeholder="nickname" required />
+                    <input type="text" id="password" placeholder="password" required />
+                    <button type="submit">Enter</button>
+                </div>
+                <div id="errors"></div>
             </form>
 
             <div id="welcome"></div>
@@ -30,13 +33,47 @@
         <script>
             const socket = io();
             var verified = false;
+            var nick = '';
 
             document.getElementById('form').addEventListener('submit', (event) => {
                 event.preventDefault();
 
                 const nickname = document.getElementById('nickname').value;
                 const password = document.getElementById('password').value;
-                if (nickname && nickname.trim()) {
+                const errorsContainer = document.getElementById('errors');
+                errorsContainer.innerHTML = '';
+
+                var firstCheck = true, secondCheck = true, thirdCheck = true, fourthCheck = true;
+                const normalized = nickname.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+                const isAscii = /^[A-Za-z0-9\s\-]+$/.test(normalized);
+                const byteLength = new TextEncoder().encode(nickname).length;
+
+                if (nickname !== nickname.trim()) {
+                    const div = document.createElement('div');
+                    div.textContent = "no empty space, leading spaces, or trailing spaces";
+                    errorsContainer.appendChild(div);
+                    secondCheck = false;
+                }
+                if (!(normalized && isAscii)) {
+                    const div = document.createElement('div');
+                    div.textContent = "only letters, numbers, and hyphens allowed";
+                    errorsContainer.appendChild(div);
+                    firstCheck = false;
+                }
+                if (nickname.length > 20) {
+                    const div = document.createElement('div');
+                    div.textContent = "cannot be more than 20 characters: " + nickname.length;
+                    errorsContainer.appendChild(div);
+                    thirdCheck = false;
+                }
+                if (byteLength > 80) {
+                    const div = document.createElement('div');
+                    div.textContent = "cannot be more than 80 bytes: " + byteLength;
+                    errorsContainer.appendChild(div);
+                    fourthCheck = false;
+                }
+                
+                if (firstCheck && secondCheck && thirdCheck && fourthCheck) {
                     socket.emit('user', { nickname, password });
                 }
             })
@@ -45,7 +82,7 @@
                 if (verified) {
                     let title = window.prompt("Activity title");
                     let challenge = window.prompt("Describe the challenge");
-                    let poster = document.getElementById('nickname').value;
+                    let poster = nick;
                     let opponent = window.prompt("Who are you challenging?");
 
                     socket.emit('challenge', { title, challenge, poster, opponent });
@@ -54,9 +91,7 @@
             
             function challengeDone(challengeTitle) {
                 if (verified) {
-                    let me = document.getElementById("nickname").value;
-
-                    socket.emit('challenge-done', { challengeTitle, me })
+                    socket.emit('challenge-done', { challengeTitle, nick })
                 }
             }
 
@@ -67,7 +102,7 @@
                         const container = document.getElementById('all-users');
                         container.innerHTML = '';
                         data.forEach(user => {
-                            if (user.name === document.getElementById("nickname").value) {
+                            if (user.name === nick) {
                                 return
                             }
                             const div = document.createElement('div');
@@ -79,42 +114,47 @@
             }
 
             function displayMyChallenges() {
-                const nickname = document.getElementById("nickname").value;
-                fetch(`/${nickname}/challenges`)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data)
-                        const myChallenges = document.getElementById('my-challenges');
-                        myChallenges.innerHTML = '';
+                if (verified) {
+                    fetch(`/${nick}/challenges`)
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data)
+                            const myChallenges = document.getElementById('my-challenges');
+                            myChallenges.innerHTML = '';
 
-                        data.forEach(challenge => {
-                            let container = document.createElement('div');
-                            container.className = "challenge";
+                            data.forEach(challenge => {
+                                let container = document.createElement('div');
+                                container.className = "challenge";
 
-                            let div1 = document.createElement('div');
-                            div1.textContent = challenge.title;
-                            container.appendChild(div1);
+                                let div1 = document.createElement('div');
+                                div1.textContent = challenge.title;
+                                container.appendChild(div1);
 
-                            let div2 = document.createElement('div');
-                            div2.textContent = challenge.activity;
-                            container.appendChild(div2);
+                                let div2 = document.createElement('div');
+                                div2.textContent = challenge.activity;
+                                container.appendChild(div2);
 
-                            let div3 = document.createElement('div');
-                            div3.textContent = "Assignees: " + challenge.players.map(player => player.name).join(', ');
-                            container.appendChild(div3);
+                                let div3 = document.createElement('div');
+                                div3.textContent = "Assignees: " + challenge.players.map(player => player.name).join(', ');
+                                container.appendChild(div3);
 
-                            let button = document.createElement('button');
-                            button.innerHTML = "Done";
-                            button.onclick = function() {
-                                challengeDone(challenge.title);
-                            };
-                            container.appendChild(button);
+                                let button = document.createElement('button');
+                                button.innerHTML = "Done";
+                                button.onclick = function() {
+                                    challengeDone(challenge.title);
+                                };
+                                container.appendChild(button);
 
-                            myChallenges.appendChild(container);
-                        });
-                    })
-                    .catch(error => console.error(`Error fetching /${nickname}/challenges :`, error));
+                                myChallenges.appendChild(container);
+                            });
+                        })
+                        .catch(error => console.error(`Error fetching /${nick}/challenges :`, error));
+                }
             }
+
+            socket.on('incorrect-login', () => {
+                document.getElementById('errors').innerHTML = "Incorrect credentials!";
+            })
 
             socket.on('display-all-users', () => {
                 displayUsersList();
@@ -126,9 +166,10 @@
 
             socket.on('logged-in', (nickname) => {
                 verified = true;
+                nick = nickname;
                 document.getElementById("form").style.display = "none";
                 document.getElementById("verified").style.display = "block";
-                document.getElementById("welcome").innerText = "Welcome, " + nickname + "!";
+                document.getElementById("welcome").innerText = "Welcome, " + nick + "!";
 
                 displayUsersList();
                 displayMyChallenges();

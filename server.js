@@ -62,25 +62,34 @@ io.on('connection', (socket) => {
         var bool = false;
 
         db.query(`SELECT * FROM users WHERE name = ?`, [data.nickname], (err, results) => {
-            if (results.length > 0) {
-                console.log(results);
-                bool = bcrypt.compareSync(data.password, results[0].password);
-                if (bool) {
-                    socket.emit('logged-in', data.nickname);
-                    console.log('User signed in!')
-                }
-            } else {
-                const hash = bcrypt.hashSync(data.password, saltRounds);
-                db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [data.nickname, hash], (err, results) => {
-                    if (err) {
-                        console.error('Error inserting user:', err);
-                        return
+            const nickname = data.nickname;
+            const normalized = nickname.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+            const isAscii = /^[A-Za-z0-9\s\-]+$/.test(normalized);
+            const byteLength = new TextEncoder().encode(nickname).length;
+
+            if ((nickname === nickname.trim()) && (normalized && isAscii) && (nickname.length <= 20) && (byteLength <= 80)) {
+                if (results.length > 0) {
+                    console.log(results);
+                    bool = bcrypt.compareSync(data.password, results[0].password);
+                    if (bool) {
+                        socket.emit('logged-in', nickname);
+                        console.log('User signed in!');
                     } else {
-                        socket.emit('logged-in', data.nickname);
-                        socket.broadcast.emit('display-all-users');
-                        console.log('Added user, and logged in!');
+                        socket.emit('incorrect-login');
                     }
-                })
+                } else {
+                    const hash = bcrypt.hashSync(data.password, saltRounds);
+                    db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [nickname, hash], (err) => {
+                        if (err) {
+                            console.error('Error inserting user:', err);
+                            return
+                        } else {
+                            socket.emit('logged-in', nickname);
+                            socket.broadcast.emit('display-all-users');
+                            console.log('Added user, and logged in!');
+                        }
+                    })
+                }
             }
         });
     });
@@ -130,7 +139,7 @@ io.on('connection', (socket) => {
     socket.on('challenge-done', (data) => {
         db.query(`SELECT id FROM challenges WHERE title = ?`, [data.challengeTitle], (err, results) => {
             const challengeId = results[0].id;
-            db.query(`SELECT id FROM users WHERE name = ?`, [data.me], (err, results) => {
+            db.query(`SELECT id FROM users WHERE name = ?`, [data.nick], (err, results) => {
                 const myId = results[0].id;
 
                 db.query(`DELETE FROM challenge_user WHERE user_id = ? AND challenge_id = ?`, [myId, challengeId]);
@@ -140,9 +149,9 @@ io.on('connection', (socket) => {
                 db.query(`SELECT * FROM challenge_user WHERE challenge_id = ?`, [challengeId], (err, results) => {
                     if (results[0] === undefined) {
                         db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
-                        console.log(`${data.me} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
+                        console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
                     } else {
-                        console.log(`${data.me} completed ${data.challengeTitle}! Challenge still exists.`);
+                        console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
                     }
                 });
             });
