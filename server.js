@@ -42,8 +42,9 @@ app.get('/:nickname/challenges', async (req, res) => {
                 let title = challengeResults[0].title;
                 let activity = challengeResults[0].activity;
                 const [playerResults] = await db.promise().query(`SELECT u.name, cu.role FROM challenge_user cu JOIN users u ON cu.user_id = u.id WHERE cu.challenge_id = ?`, [id]);
+                const [inProgress] = await db.promise().query(`SELECT name FROM in_progress WHERE challenge_id = ?`, [challengeId]);
 
-                return { title, activity, players: playerResults };
+                return { title, activity, players: playerResults, inProgress };
             })
         );
 
@@ -69,11 +70,10 @@ io.on('connection', (socket) => {
 
             if ((nickname === nickname.trim()) && (normalized && isAscii) && (nickname.length <= 20) && (byteLength <= 80)) {
                 if (results.length > 0) {
-                    console.log(results);
                     bool = bcrypt.compareSync(data.password, results[0].password);
                     if (bool) {
                         socket.emit('logged-in', nickname);
-                        console.log('User signed in!');
+                        console.log(`${nickname} signed in!`);
                     } else {
                         socket.emit('incorrect-login');
                     }
@@ -86,7 +86,7 @@ io.on('connection', (socket) => {
                         } else {
                             socket.emit('logged-in', nickname);
                             socket.broadcast.emit('display-all-users');
-                            console.log('Added user, and logged in!');
+                            console.log(`Added ${nickname}, and logged in!`);
                         }
                     })
                 }
@@ -95,6 +95,21 @@ io.on('connection', (socket) => {
     });
 
     socket.on('challenge', (data) => {
+        /* TO DO: reformat using async/await, and include these conditions
+
+        if (data.opponent === data.poster) {
+            // challenging yourself is not a feature
+            return
+        }
+
+        db.query(`SELECT * FROM users WHERE name = ?`, [data.opponent], (err, results) => {
+            if (results.length === 0) {
+                return
+            }
+        });
+        
+        */
+        
         db.query(`INSERT INTO challenges (title, activity) VALUES (?, ?)`, [data.title, data.challenge], (err, results) => {
             if (err) {
                 console.error('Error inserting challenges:', err);
@@ -105,31 +120,30 @@ io.on('connection', (socket) => {
                 const challengeId = results.insertId;
                 db.query(`SELECT * FROM users WHERE name = ?`, [data.poster], (err, results) => {
                     const poster = results[0].id;
-                    console.log(poster);
 
                     db.query(`SELECT * FROM users WHERE name = ?`, [data.opponent], (err, results) => {
                         const opponent = results[0].id;
-                        console.log(opponent)
 
-                        db.query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'poster');`, [poster, challengeId], (err, results) => {
+                        db.query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'poster')`, [poster, challengeId], (err, results) => {
                             if (err) {
-                                console.error('Error inserting poster_challenge:', err);
+                                console.error('Error inserting poster challenge_user:', err);
                                 return
                             } else {
-                                console.log('Added poster_challenge!');
-
-                                db.query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'opponent');`, [opponent, challengeId], (err, results) => {
-                                    if (err) {
-                                        console.error('Error inserting opponent_challenge:', err);
-                                        return
-                                    } else {
-                                        socket.emit('display-my-challenges');
-                                        socket.broadcast.emit('display-my-challenges');
-                                        console.log('Added opponent_challenge!');
-                                    }
-                                });
+                                console.log('Added challenge_user (poster: ' + poster + ')!');
                             }
                         });
+
+                        db.query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'opponent')`, [opponent, challengeId], (err, results) => {
+                            if (err) {
+                                console.error('Error inserting opponent challenge_user:', err);
+                                return
+                            } else {
+                                console.log('Added challenge_user (opponent: ' + opponent + ')!');
+                            }
+                        });
+
+                        socket.emit('display-my-challenges');
+                        socket.broadcast.emit('display-my-challenges');
                     });
                 });
             }
@@ -142,13 +156,15 @@ io.on('connection', (socket) => {
             db.query(`SELECT id FROM users WHERE name = ?`, [data.nick], (err, results) => {
                 const myId = results[0].id;
 
-                db.query(`DELETE FROM challenge_user WHERE user_id = ? AND challenge_id = ?`, [myId, challengeId]);
+                db.query(`INSERT INTO in_progress (name, challenge_id) VALUES (?, ?)`, [data.nick, challengeId]);
+
                 socket.emit('display-my-challenges');
                 socket.broadcast.emit('display-my-challenges');
 
-                db.query(`SELECT * FROM challenge_user WHERE challenge_id = ?`, [challengeId], (err, results) => {
-                    if (results[0] === undefined) {
+                db.query(`SELECT * FROM in_progress WHERE challenge_id = ?`, [challengeId], (err, results) => {
+                    if (results.length === 2) {
                         db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
+                        db.query(`DELETE FROM in_progress WHERE challenge_id = ?`, [challengeId]);
                         console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
                     } else {
                         console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);

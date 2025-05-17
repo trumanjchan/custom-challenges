@@ -67,4 +67,19 @@ db.query(createChallengeUserTableSQL, (err) => {
     }
 });
 
+const createInProgressTableSQL = `
+  CREATE TABLE IF NOT EXISTS in_progress (
+    name VARCHAR(20) CHARACTER SET utf8mb4 NOT NULL,
+    challenge_id INT NOT NULL,
+    FOREIGN KEY (name) REFERENCES users(name)
+  );
+`;
+db.query(createInProgressTableSQL, (err) => {
+    if (err) {
+        console.error('Error creating in_progress table:', err);
+    } else {
+        console.log('in_progress table confirmed.');
+    }
+});
+
 export default db;
