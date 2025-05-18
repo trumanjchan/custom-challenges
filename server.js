@@ -94,60 +94,30 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('challenge', (data) => {
-        /* TO DO: reformat using async/await, and include these conditions
+    socket.on('challenge', async (data) => {
+        try {
+            const [opponentId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.opponent]);
+            if (opponentId[0].id && data.opponent !== data.poster) {
+                const [challengeId] = await db.promise().query(`INSERT INTO challenges (title, activity) VALUES (?, ?)`, [data.title, data.challenge]);
 
-        if (data.opponent === data.poster) {
-            // challenging yourself is not a feature
-            return
-        }
+                const [posterId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.poster]);
 
-        db.query(`SELECT * FROM users WHERE name = ?`, [data.opponent], (err, results) => {
-            if (results.length === 0) {
-                return
-            }
-        });
-        
-        */
-        
-        db.query(`INSERT INTO challenges (title, activity) VALUES (?, ?)`, [data.title, data.challenge], (err, results) => {
-            if (err) {
-                console.error('Error inserting challenges:', err);
-                return
+                await db.promise().query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'poster')`, [posterId[0].id, challengeId.insertId]);
+                await db.promise().query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'opponent')`, [opponentId[0].id, challengeId.insertId]);
+
+                socket.emit('display-my-challenges');
+                socket.broadcast.emit('display-my-challenges');
+                console.log("inserted challenge: " + data.title);
+                console.log("inserted challenge_user for poster " + data.poster);
+                console.log("inserted challenge_user for opponent " + data.opponent);
             } else {
-                console.log('Added challenge!');
-
-                const challengeId = results.insertId;
-                db.query(`SELECT * FROM users WHERE name = ?`, [data.poster], (err, results) => {
-                    const poster = results[0].id;
-
-                    db.query(`SELECT * FROM users WHERE name = ?`, [data.opponent], (err, results) => {
-                        const opponent = results[0].id;
-
-                        db.query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'poster')`, [poster, challengeId], (err, results) => {
-                            if (err) {
-                                console.error('Error inserting poster challenge_user:', err);
-                                return
-                            } else {
-                                console.log('Added challenge_user (poster: ' + poster + ')!');
-                            }
-                        });
-
-                        db.query(`INSERT INTO challenge_user (user_id, challenge_id, role) VALUES (?, ?, 'opponent')`, [opponent, challengeId], (err, results) => {
-                            if (err) {
-                                console.error('Error inserting opponent challenge_user:', err);
-                                return
-                            } else {
-                                console.log('Added challenge_user (opponent: ' + opponent + ')!');
-                            }
-                        });
-
-                        socket.emit('display-my-challenges');
-                        socket.broadcast.emit('display-my-challenges');
-                    });
-                });
+                console.log("Challenging yourself is not a feature of this app! Challenge yourself + your friend.")
+                // alert frontend to enter a valid username for opponent
             }
-        });
+        } catch (err) {
+            console.log("Please enter a valid opponent username!")
+            // alert frontend to enter a valid username for opponent
+        }
     })
 
     socket.on('challenge-done', (data) => {
