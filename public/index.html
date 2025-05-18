@@ -9,20 +9,26 @@
 
     <body style="display: flex; flex-direction: row;">
         <div style="width: 50%;">
-            <form id="form">
+            <form id="loginForm">
                 <div>
                     <input type="text" id="nickname" placeholder="nickname" required />
                     <input type="text" id="password" placeholder="password" required />
                     <button type="submit">Enter</button>
                 </div>
-                <div id="errors"></div>
+                <div id="loginErrors"></div>
             </form>
 
             <div id="welcome"></div>
 
-            <div id="verified" style="display: none;">
-                <button onclick="challenge()">Challenge</button>
-            </div>
+            <form id="challengeForm" style="display: none;">
+                <div>
+                    <input type="text" id="title" placeholder="title" required />
+                    <input type="text" id="activity" placeholder="activity" required />
+                    <input type="text" id="opponent" placeholder="opponent" required />
+                    <button type="submit">Challenge</button>
+                </div>
+                <div id="challengeErrors"></div>
+            </form>
 
             <div id="all-users" style="margin-top: 30px;"></div>
         </div>
@@ -35,13 +41,13 @@
             var verified = false;
             var nick = '';
 
-            document.getElementById('form').addEventListener('submit', (event) => {
+            document.getElementById('loginForm').addEventListener('submit', (event) => {
                 event.preventDefault();
 
                 const nickname = document.getElementById('nickname').value;
                 const password = document.getElementById('password').value;
-                const errorsContainer = document.getElementById('errors');
-                errorsContainer.innerHTML = '';
+                const loginErrorsContainer = document.getElementById('loginErrors');
+                loginErrorsContainer.innerHTML = '';
 
                 var firstCheck = true, secondCheck = true, thirdCheck = true, fourthCheck = true;
                 const normalized = nickname.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
@@ -51,25 +57,25 @@
                 if (nickname !== nickname.trim()) {
                     const div = document.createElement('div');
                     div.textContent = "no empty space, leading spaces, or trailing spaces";
-                    errorsContainer.appendChild(div);
+                    loginErrorsContainer.appendChild(div);
                     secondCheck = false;
                 }
                 if (!(normalized && isAscii)) {
                     const div = document.createElement('div');
                     div.textContent = "only letters, numbers, and hyphens allowed";
-                    errorsContainer.appendChild(div);
+                    loginErrorsContainer.appendChild(div);
                     firstCheck = false;
                 }
                 if (nickname.length > 20) {
                     const div = document.createElement('div');
                     div.textContent = "cannot be more than 20 characters: " + nickname.length;
-                    errorsContainer.appendChild(div);
+                    loginErrorsContainer.appendChild(div);
                     thirdCheck = false;
                 }
                 if (byteLength > 80) {
                     const div = document.createElement('div');
                     div.textContent = "cannot be more than 80 bytes: " + byteLength;
-                    errorsContainer.appendChild(div);
+                    loginErrorsContainer.appendChild(div);
                     fourthCheck = false;
                 }
                 
@@ -78,16 +84,25 @@
                 }
             })
 
-            function challenge() {
-                if (verified) {
-                    let title = window.prompt("Activity title");
-                    let challenge = window.prompt("Describe the challenge");
-                    let poster = nick;
-                    let opponent = window.prompt("Who are you challenging?");
+            document.getElementById('challengeForm').addEventListener('submit', (event) => {
+                event.preventDefault();
 
-                    socket.emit('challenge', { title, challenge, poster, opponent });
+                if (verified) {
+                    const title = document.getElementById('title');
+                    const activity = document.getElementById('activity');
+                    const poster = nick;
+                    const opponent = document.getElementById('opponent');
+                    titleInput = title.value;
+                    activityInput = activity.value;
+                    opponentInput = opponent.value;
+                    document.getElementById('challengeErrors').innerHTML = '';
+
+                    socket.emit('challenge', { titleInput, activityInput, poster, opponentInput });
+                    title.value = '';
+                    activity.value = '';
+                    opponent.value = '';
                 }
-            }
+            })
             
             function challengeDone(challengeTitle) {
                 if (verified) {
@@ -164,7 +179,11 @@
             }
 
             socket.on('incorrect-login', () => {
-                document.getElementById('errors').innerHTML = "Incorrect credentials!";
+                document.getElementById('loginErrors').innerHTML = "Incorrect credentials!";
+            })
+
+            socket.on('create-challenge-error', (msg) => {
+                document.getElementById('challengeErrors').innerHTML = msg;
             })
 
             socket.on('display-all-users', () => {
@@ -178,8 +197,8 @@
             socket.on('logged-in', (nickname) => {
                 verified = true;
                 nick = nickname;
-                document.getElementById("form").style.display = "none";
-                document.getElementById("verified").style.display = "block";
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("challengeForm").style.display = "block";
                 document.getElementById("welcome").innerText = "Welcome, " + nick + "!";
 
                 displayUsersList();

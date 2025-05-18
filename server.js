@@ -96,9 +96,9 @@ io.on('connection', (socket) => {
 
     socket.on('challenge', async (data) => {
         try {
-            const [opponentId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.opponent]);
-            if (opponentId[0].id && data.opponent !== data.poster) {
-                const [challengeId] = await db.promise().query(`INSERT INTO challenges (title, activity) VALUES (?, ?)`, [data.title, data.challenge]);
+            const [opponentId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.opponentInput]);
+            if (opponentId[0].id && data.opponentInput !== data.poster) {
+                const [challengeId] = await db.promise().query(`INSERT INTO challenges (title, activity) VALUES (?, ?)`, [data.titleInput, data.activityInput]);
 
                 const [posterId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.poster]);
 
@@ -107,16 +107,18 @@ io.on('connection', (socket) => {
 
                 socket.emit('display-my-challenges');
                 socket.broadcast.emit('display-my-challenges');
-                console.log("inserted challenge: " + data.title);
+                console.log("inserted challenge: " + data.titleInput);
                 console.log("inserted challenge_user for poster " + data.poster);
-                console.log("inserted challenge_user for opponent " + data.opponent);
+                console.log("inserted challenge_user for opponent " + data.opponentInput);
             } else {
-                console.log("Challenging yourself is not a feature of this app! Challenge yourself + your friend.")
-                // alert frontend to enter a valid username for opponent
+                console.log("Challenging yourself is not a feature of this app. Challenge and compete with your friend!");
+                let msg = "Challenging yourself is not a feature of this app. Challenge and compete with your friend!";
+                socket.emit('create-challenge-error', msg);
             }
         } catch (err) {
-            console.log("Please enter a valid opponent username!")
-            // alert frontend to enter a valid username for opponent
+            console.log("Please enter a valid opponent username!");
+            let msg = "Please enter a valid opponent username!";
+            socket.emit('create-challenge-error', msg);
         }
     })
 
