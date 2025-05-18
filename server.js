@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/all-users', (req, res) => {
-    db.query(`SELECT name FROM users ORDER BY id ASC`, (err, results) => {
+    db.query(`SELECT name, is_online FROM users ORDER BY is_online DESC`, (err, results) => {
         res.json(results);
     });
 });
@@ -57,7 +57,7 @@ app.get('/:nickname/challenges', async (req, res) => {
 
 io.on('connection', (socket) => {
     socket.emit('display-all-users');
-    console.log('a user connected: ' + socket.id);
+    console.log('a user connected');
 
     socket.on('user', (data) => {
         var bool = false;
@@ -69,24 +69,29 @@ io.on('connection', (socket) => {
             const byteLength = new TextEncoder().encode(nickname).length;
 
             if ((nickname === nickname.trim()) && (normalized && isAscii) && (nickname.length <= 20) && (byteLength <= 80)) {
+                socket.nickname = nickname;
+
                 if (results.length > 0) {
                     bool = bcrypt.compareSync(data.password, results[0].password);
                     if (bool) {
-                        socket.emit('logged-in', nickname);
-                        console.log(`${nickname} signed in!`);
+                        db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [true, socket.nickname]);
+                        socket.emit('logged-in', socket.nickname);
+                        socket.broadcast.emit('display-all-users');
+                        console.log(`${socket.nickname} signed in!`);
                     } else {
                         socket.emit('incorrect-login');
                     }
                 } else {
                     const hash = bcrypt.hashSync(data.password, saltRounds);
-                    db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [nickname, hash], (err) => {
+                    db.query(`INSERT INTO users (name, password) VALUES (?, ?)`, [socket.nickname, hash], (err) => {
                         if (err) {
                             console.error('Error inserting user:', err);
                             return
                         } else {
-                            socket.emit('logged-in', nickname);
+                            db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [true, socket.nickname]);
+                            socket.emit('logged-in', socket.nickname);
                             socket.broadcast.emit('display-all-users');
-                            console.log(`Added ${nickname}, and logged in!`);
+                            console.log(`Added ${socket.nickname}, and logged in!`);
                         }
                     })
                 }
@@ -107,6 +112,7 @@ io.on('connection', (socket) => {
 
                 socket.emit('display-my-challenges');
                 socket.broadcast.emit('display-my-challenges');
+                socket.emit('create-challenge-success');
                 console.log("inserted challenge: " + data.titleInput);
                 console.log("inserted challenge_user for poster " + data.poster);
                 console.log("inserted challenge_user for opponent " + data.opponentInput);
@@ -147,7 +153,11 @@ io.on('connection', (socket) => {
     })
 
     socket.on('disconnect', () => {
-        console.log('user disconnected: ' + socket.id);
+        if (socket.nickname) {
+            db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [false, socket.nickname]);
+            console.log('user disconnected: ' + socket.nickname);
+            socket.broadcast.emit('display-all-users');
+        }
     });
 });
 

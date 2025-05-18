@@ -88,22 +88,16 @@
                 event.preventDefault();
 
                 if (verified) {
-                    const title = document.getElementById('title');
-                    const activity = document.getElementById('activity');
+                    const titleInput = document.getElementById('title').value;
+                    const activityInput = document.getElementById('activity').value;
                     const poster = nick;
-                    const opponent = document.getElementById('opponent');
-                    titleInput = title.value;
-                    activityInput = activity.value;
-                    opponentInput = opponent.value;
+                    const opponentInput = document.getElementById('opponent').value;
                     document.getElementById('challengeErrors').innerHTML = '';
 
                     socket.emit('challenge', { titleInput, activityInput, poster, opponentInput });
-                    title.value = '';
-                    activity.value = '';
-                    opponent.value = '';
                 }
             })
-            
+
             function challengeDone(challengeTitle) {
                 if (verified) {
                     socket.emit('challenge-done', { challengeTitle, nick })
@@ -122,6 +116,9 @@
                             }
                             const div = document.createElement('div');
                             div.textContent = user.name;
+                            if (user.is_online) {
+                                div.style.color = "rgb(19, 115, 51)";
+                            }
                             container.appendChild(div);
                         });
                     })
@@ -182,6 +179,13 @@
                 document.getElementById('loginErrors').innerHTML = "Incorrect credentials!";
             })
 
+            socket.on('create-challenge-success', () => {
+                document.getElementById('title').value = '';
+                document.getElementById('activity').value = '';
+                document.getElementById('opponent').value = '';
+                document.getElementById('title').focus();
+            })
+
             socket.on('create-challenge-error', (msg) => {
                 document.getElementById('challengeErrors').innerHTML = msg;
             })
@@ -200,6 +204,7 @@
                 document.getElementById("loginForm").style.display = "none";
                 document.getElementById("challengeForm").style.display = "block";
                 document.getElementById("welcome").innerText = "Welcome, " + nick + "!";
+                document.getElementById('title').focus();
 
                 displayUsersList();
                 displayMyChallenges();

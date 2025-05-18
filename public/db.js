@@ -23,7 +23,8 @@ const createUsersTableSQL = `
   CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(20) CHARACTER SET utf8mb4 UNIQUE NOT NULL,
-    password VARCHAR(60) NOT NULL
+    password VARCHAR(60) NOT NULL,
+    is_online BOOLEAN DEFAULT FALSE NOT NULL
   );
 `;
 db.query(createUsersTableSQL, (err) => {
