@@ -72,7 +72,7 @@ const createInProgressTableSQL = `
   CREATE TABLE IF NOT EXISTS in_progress (
     name VARCHAR(20) CHARACTER SET utf8mb4 NOT NULL,
     challenge_id INT NOT NULL,
-    FOREIGN KEY (name) REFERENCES users(name)
+    FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE
   );
 `;
 db.query(createInProgressTableSQL, (err) => {

@@ -131,26 +131,39 @@ io.on('connection', (socket) => {
     socket.on('challenge-done', (data) => {
         db.query(`SELECT id FROM challenges WHERE title = ?`, [data.challengeTitle], (err, results) => {
             const challengeId = results[0].id;
-            db.query(`SELECT id FROM users WHERE name = ?`, [data.nick], (err, results) => {
-                const myId = results[0].id;
 
-                db.query(`INSERT INTO in_progress (name, challenge_id) VALUES (?, ?)`, [data.nick, challengeId]);
+            db.query(`INSERT INTO in_progress (name, challenge_id) VALUES (?, ?)`, [data.nick, challengeId]);
+            socket.emit('display-my-challenges');
+            socket.broadcast.emit('display-my-challenges');
 
-                socket.emit('display-my-challenges');
-                socket.broadcast.emit('display-my-challenges');
-
-                db.query(`SELECT * FROM in_progress WHERE challenge_id = ?`, [challengeId], (err, results) => {
-                    if (results.length === 2) {
-                        db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
-                        db.query(`DELETE FROM in_progress WHERE challenge_id = ?`, [challengeId]);
-                        console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
-                    } else {
-                        console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
-                    }
-                });
+            db.query(`SELECT * FROM in_progress WHERE challenge_id = ?`, [challengeId], (err, results) => {
+                if (results.length === 2) {
+                    db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
+                    db.query(`DELETE FROM in_progress WHERE challenge_id = ?`, [challengeId]);
+                    console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
+                } else {
+                    console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
+                }
             });
         });
     })
+
+    socket.on('delete-account', async (nick) => {
+        try {
+            const [myId] = await db.promise().query(`SELECT id FROM users WHERE name = ?`, [nick]);
+            const [challenge_ids] = await db.promise().query(`SELECT challenge_id FROM challenge_user WHERE user_id = ?`, [myId[0].id]);
+
+            for (const c of challenge_ids) {
+                await db.promise().query(`DELETE FROM challenges WHERE id = ?`, [c.challenge_id]);
+            }
+
+            await db.promise().query(`DELETE FROM users WHERE name = ?`, [nick]);
+            socket.emit('reload');
+            socket.broadcast.emit('display-my-challenges');
+        } catch (err) {
+            console.log("Error when deleting " + nick + ": " + err);
+        }
+    });
 
     socket.on('disconnect', () => {
         if (socket.nickname) {

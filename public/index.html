@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,16 +19,7 @@
             </form>
 
             <div id="welcome"></div>
-
-            <form id="challengeForm" style="display: none;">
-                <div>
-                    <input type="text" id="title" placeholder="title" required />
-                    <input type="text" id="activity" placeholder="activity" required />
-                    <input type="text" id="opponent" placeholder="opponent" required />
-                    <button type="submit">Challenge</button>
-                </div>
-                <div id="challengeErrors"></div>
-            </form>
+            <form id="challengeForm"></form>
 
             <div id="all-users" style="margin-top: 30px;"></div>
         </div>
@@ -100,7 +91,13 @@
 
             function challengeDone(challengeTitle) {
                 if (verified) {
-                    socket.emit('challenge-done', { challengeTitle, nick })
+                    socket.emit('challenge-done', { challengeTitle, nick });
+                }
+            }
+
+            function deleteAccount() {
+                if (verified) {
+                    socket.emit('delete-account', nick);
                 }
             }
 
@@ -175,6 +172,10 @@
                 }
             }
 
+            socket.on('reload', () => {
+                location.reload();
+            })
+
             socket.on('incorrect-login', () => {
                 document.getElementById('loginErrors').innerHTML = "Incorrect credentials!";
             })
@@ -202,8 +203,15 @@
                 verified = true;
                 nick = nickname;
                 document.getElementById("loginForm").style.display = "none";
-                document.getElementById("challengeForm").style.display = "block";
-                document.getElementById("welcome").innerText = "Welcome, " + nick + "!";
+                document.getElementById("challengeForm").innerHTML = `
+                    <div>
+                        <input type="text" id="title" placeholder="title" required />
+                        <input type="text" id="activity" placeholder="activity" required />
+                        <input type="text" id="opponent" placeholder="opponent" required />
+                        <button type="submit">Challenge</button>
+                    </div>
+                    <div id="challengeErrors"></div>`;
+                document.getElementById("welcome").innerHTML = `<div>Welcome, ${nick}!</div><button onclick="deleteAccount()">Delete Account</button>`;
                 document.getElementById('title').focus();
 
                 displayUsersList();
