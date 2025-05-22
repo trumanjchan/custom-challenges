@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/all-users', (req, res) => {
-    db.query(`SELECT name, is_online FROM users ORDER BY is_online DESC`, (err, results) => {
+    db.query(`SELECT name, is_online FROM users ORDER BY is_online DESC, id ASC;`, (err, results) => {
         res.json(results);
     });
 });

@@ -19,6 +19,7 @@
             </form>
 
             <div id="welcome"></div>
+            <div id="all-users"></div>
             <form id="challengeForm"></form>
         </div>
 
@@ -28,7 +29,7 @@
             <div class="fade bot"></div>
         </div>
 
-        <div id="all-users"></div>
+        <div id="server-announcements"></div>
 
 
         <script src="/socket.io/socket.io.js"></script>
@@ -192,7 +193,6 @@
                 document.getElementById('title').value = '';
                 document.getElementById('activity').value = '';
                 document.getElementById('opponent').value = '';
-                document.getElementById('title').focus();
             })
 
             socket.on('create-challenge-error', (msg) => {
@@ -220,7 +220,6 @@
                     </div>
                     <div id="challengeErrors"></div>`;
                 document.getElementById("welcome").innerHTML = `<div>Welcome, ${nick}!</div><button onclick="deleteAccount()">Delete Account</button>`;
-                document.getElementById('title').focus();
 
                 displayUsersList();
                 displayMyChallenges();
