@@ -6,7 +6,7 @@ body {
 
     .info {
         width: 25%;
-        padding: 20px;
+        margin: 20px;
 
         #loginForm>div,
         #challengeForm>div {
@@ -22,12 +22,10 @@ body {
     .challenges-container {
         width: 50%;
         background: linear-gradient(#9198e5, #b181ff, #d891ef);
-        overflow-y: auto;
-        margin: 20px 0;
         position: relative;
 
         .fade {
-            position: sticky;
+            position: absolute;
             left: 0;
             right: 0;
             height: 30px;
@@ -44,6 +42,9 @@ body {
         }
 
         #my-challenges {
+            height: 100%;
+            overflow-y: auto;
+
             .challenge {
                 width: 80%;
                 margin: 30px auto;
@@ -74,6 +75,28 @@ body {
 
     #all-users {
         width: 25%;
-        padding: 20px;
+        margin: 20px;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    body {
+        flex-direction: column;
+
+        .info {
+            width: initial;
+        }
+
+        .challenges-container {
+            width: initial;
+
+            #my-challenges {
+                height: 50vh;
+            }
+        }
+
+        #all-users {
+            width: initial;
+        }
     }
 }
