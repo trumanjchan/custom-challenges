@@ -1,3 +1,79 @@
 body {
     margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+
+    .info {
+        width: 25%;
+        padding: 20px;
+
+        #loginForm>div,
+        #challengeForm>div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #welcome {
+            margin-bottom: 50px;
+        }
+    }
+
+    .challenges-container {
+        width: 50%;
+        background: linear-gradient(#9198e5, #b181ff, #d891ef);
+        overflow-y: auto;
+        margin: 20px 0;
+        position: relative;
+
+        .fade {
+            position: sticky;
+            left: 0;
+            right: 0;
+            height: 30px;
+
+            &.top {
+                top: 0;
+                background: linear-gradient(rgba(145, 152, 229, 1), rgba(145, 152, 229, 0));
+            }
+
+            &.bot {
+                bottom: 0;
+                background: linear-gradient(rgba(216, 145, 239, 0), rgba(216, 145, 239, 1));
+            }
+        }
+
+        #my-challenges {
+            .challenge {
+                width: 80%;
+                margin: 30px auto;
+                text-align: center;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.75);
+                box-shadow: 0 8px 25px 0 rgba(0, 0, 0, 0.3);
+                border-radius: 35px;
+
+                .title {
+                    font-size: 20px;
+                    font-weight: bold;
+                    padding-bottom: 10px;
+                }
+
+                .activity {
+                    font-size: 18px;
+                    padding-bottom: 15px;
+                }
+
+                .by {
+                    font-size: 12px;
+                    color: gray;
+                }
+            }
+        }
+    }
+
+    #all-users {
+        width: 25%;
+        padding: 20px;
+    }
 }

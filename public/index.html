@@ -7,8 +7,8 @@
         <link rel="stylesheet" href="/styles.css">
     </head>
 
-    <body style="display: flex; flex-direction: row;">
-        <div style="width: 50%;">
+    <body>
+        <div class="info">
             <form id="loginForm">
                 <div>
                     <input type="text" id="nickname" placeholder="nickname" required />
@@ -20,10 +20,15 @@
 
             <div id="welcome"></div>
             <form id="challengeForm"></form>
-
-            <div id="all-users" style="margin-top: 30px;"></div>
         </div>
-        <div id="my-challenges" style="width: 50%;"></div>
+
+        <div class="challenges-container">
+            <div class="fade top"></div>
+            <div id="my-challenges"></div>
+            <div class="fade bot"></div>
+        </div>
+
+        <div id="all-users"></div>
 
 
         <script src="/socket.io/socket.io.js"></script>
@@ -131,7 +136,7 @@
                             const myChallenges = document.getElementById('my-challenges');
                             myChallenges.innerHTML = '';
 
-                            data.forEach(challenge => {
+                            data.reverse().forEach(challenge => {
                                 let container = document.createElement('div');
                                 container.className = "challenge";
 
@@ -140,14 +145,17 @@
 
                                 let div1 = document.createElement('div');
                                 div1.textContent = challenge.title;
+                                div1.className = "title";
                                 container.appendChild(div1);
 
                                 let div2 = document.createElement('div');
                                 div2.textContent = challenge.activity;
+                                div2.className = "activity";
                                 container.appendChild(div2);
 
                                 let div3 = document.createElement('div');
                                 div3.textContent = opponent.name + " challenged by " + poster.name;
+                                div3.className = "by";
                                 container.appendChild(div3);
 
                                 if (!challenge.inProgress[0] || challenge.inProgress[0].name !== nick) {
