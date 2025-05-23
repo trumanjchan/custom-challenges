@@ -77,6 +77,7 @@ io.on('connection', (socket) => {
                         db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [true, socket.nickname]);
                         socket.emit('logged-in', socket.nickname);
                         socket.broadcast.emit('display-all-users');
+                        io.emit('server-announcement', `+ ${socket.nickname} signed in.`);
                         console.log(`${socket.nickname} signed in!`);
                     } else {
                         socket.emit('incorrect-login');
@@ -91,7 +92,8 @@ io.on('connection', (socket) => {
                             db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [true, socket.nickname]);
                             socket.emit('logged-in', socket.nickname);
                             socket.broadcast.emit('display-all-users');
-                            console.log(`Added ${socket.nickname}, and logged in!`);
+                            io.emit('server-announcement', `+ ${socket.nickname} signed up.`);
+                            console.log(`${socket.nickname} signed up!`);
                         }
                     })
                 }
@@ -113,18 +115,17 @@ io.on('connection', (socket) => {
                 socket.emit('display-my-challenges');
                 socket.broadcast.emit('display-my-challenges');
                 socket.emit('create-challenge-success');
+                io.emit('server-announcement', `${data.poster} challenged ${data.opponentInput} to ${data.titleInput}!`);
                 console.log("inserted challenge: " + data.titleInput);
                 console.log("inserted challenge_user for poster " + data.poster);
                 console.log("inserted challenge_user for opponent " + data.opponentInput);
             } else {
+                socket.emit('create-challenge-error', "Challenging yourself is not a feature of this app. Challenge and compete with your friend!");
                 console.log("Challenging yourself is not a feature of this app. Challenge and compete with your friend!");
-                let msg = "Challenging yourself is not a feature of this app. Challenge and compete with your friend!";
-                socket.emit('create-challenge-error', msg);
             }
         } catch (err) {
+            socket.emit('create-challenge-error', "Please enter a valid opponent username!");
             console.log("Please enter a valid opponent username!");
-            let msg = "Please enter a valid opponent username!";
-            socket.emit('create-challenge-error', msg);
         }
     })
 
@@ -140,8 +141,10 @@ io.on('connection', (socket) => {
                 if (results.length === 2) {
                     db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
                     db.query(`DELETE FROM in_progress WHERE challenge_id = ?`, [challengeId]);
+                    io.emit('server-announcement', `${data.nick} completed ${data.challengeTitle}!`);
                     console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
                 } else {
+                    io.emit('server-announcement', `${data.nick} completed ${data.challengeTitle}!`);
                     console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
                 }
             });
@@ -160,6 +163,8 @@ io.on('connection', (socket) => {
             await db.promise().query(`DELETE FROM users WHERE name = ?`, [nick]);
             socket.emit('reload');
             socket.broadcast.emit('display-my-challenges');
+            io.emit('server-announcement', `${nick} deleted their account!`);
+            console.log(`${nick} deleted their account!`);
         } catch (err) {
             console.log("Error when deleting " + nick + ": " + err);
         }
@@ -168,8 +173,9 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         if (socket.nickname) {
             db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [false, socket.nickname]);
-            console.log('user disconnected: ' + socket.nickname);
             socket.broadcast.emit('display-all-users');
+            io.emit('server-announcement', `- ${socket.nickname}`);
+            console.log(`- ${socket.nickname}`);
         }
     });
 });

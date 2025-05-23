@@ -29,7 +29,11 @@
             <div class="fade bot"></div>
         </div>
 
-        <div id="server-announcements"></div>
+        <div class="announcements-container">
+            <div class="fade top"></div>
+            <div id="server-announcements"></div>
+            <div class="fade bot"></div>
+        </div>
 
 
         <script src="/socket.io/socket.io.js"></script>
@@ -183,6 +187,13 @@
 
             socket.on('reload', () => {
                 location.reload();
+            })
+
+            socket.on('server-announcement', (msg) => {
+                const container = document.getElementById("server-announcements");
+                const line = document.createElement('div');
+                line.textContent = msg;
+                container.prepend(line);
             })
 
             socket.on('incorrect-login', () => {

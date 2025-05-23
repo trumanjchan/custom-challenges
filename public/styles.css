@@ -89,8 +89,32 @@ body {
         }
     }
 
-    #server-announcements {
+    .announcements-container {
         width: 25%;
+        margin: 20px;
+        position: relative;
+
+        .fade {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 30px;
+
+            &.top {
+                top: -1px;
+                background: linear-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+            }
+            &.bot {
+                bottom: -1px;
+                background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+            }
+        }
+
+        #server-announcements {
+            height: 100%;
+            padding: 10px 0;
+            overflow-y: auto;
+        }
     }
 }
 
