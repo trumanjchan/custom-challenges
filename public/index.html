@@ -8,7 +8,7 @@
     </head>
 
     <body>
-        <div class="info">
+        <div class="info-container">
             <form id="loginForm">
                 <div>
                     <input type="text" id="nickname" placeholder="nickname" required />
@@ -30,7 +30,6 @@
         </div>
 
         <div class="announcements-container">
-            <div class="fade top"></div>
             <div id="server-announcements"></div>
             <div class="fade bot"></div>
         </div>
@@ -159,7 +158,7 @@
                                 container.appendChild(div2);
 
                                 let div3 = document.createElement('div');
-                                div3.textContent = opponent.name + " challenged by " + poster.name;
+                                div3.textContent = poster.name + " challenged " + opponent.name;
                                 div3.className = "by";
                                 container.appendChild(div3);
 
@@ -174,7 +173,9 @@
 
                                 if (challenge.inProgress[0]) {
                                     let div4 = document.createElement('div');
-                                    div4.textContent = "Completed by " + challenge.inProgress[0].name;
+                                    const date = new Date(challenge.inProgress[0].time);
+                                    const localTz = date.toLocaleString();
+                                    div4.textContent = "Completed by " + challenge.inProgress[0].name + " on " + localTz;
                                     container.appendChild(div4);
                                 }
 
@@ -190,10 +191,12 @@
             })
 
             socket.on('server-announcement', (msg) => {
-                const container = document.getElementById("server-announcements");
-                const line = document.createElement('div');
-                line.textContent = msg;
-                container.prepend(line);
+                if (window.innerWidth > 768) {
+                    const container = document.getElementById("server-announcements");
+                    const line = document.createElement('div');
+                    line.textContent = msg;
+                    container.prepend(line);
+                }
             })
 
             socket.on('incorrect-login', () => {

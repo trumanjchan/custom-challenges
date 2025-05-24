@@ -42,7 +42,7 @@ app.get('/:nickname/challenges', async (req, res) => {
                 let title = challengeResults[0].title;
                 let activity = challengeResults[0].activity;
                 const [playerResults] = await db.promise().query(`SELECT u.name, cu.role FROM challenge_user cu JOIN users u ON cu.user_id = u.id WHERE cu.challenge_id = ?`, [id]);
-                const [inProgress] = await db.promise().query(`SELECT name FROM in_progress WHERE challenge_id = ?`, [challengeId]);
+                const [inProgress] = await db.promise().query(`SELECT name, time FROM in_progress WHERE challenge_id = ?`, [challengeId]);
 
                 return { title, activity, players: playerResults, inProgress };
             })
@@ -129,26 +129,41 @@ io.on('connection', (socket) => {
         }
     })
 
-    socket.on('challenge-done', (data) => {
-        db.query(`SELECT id FROM challenges WHERE title = ?`, [data.challengeTitle], (err, results) => {
-            const challengeId = results[0].id;
+    socket.on('challenge-done', async (data) => {
+        try {
+            const [challengeId] = await db.promise().query(`SELECT id FROM challenges WHERE title = ?`, [data.challengeTitle]);
 
-            db.query(`INSERT INTO in_progress (name, challenge_id) VALUES (?, ?)`, [data.nick, challengeId]);
+            const time = new Date().toLocaleString('en-US', {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            });
+            const [date, timePart] = time.split(', ');
+            const [month, day, year] = date.split('/');
+
+            const timestamp = `${year}-${month}-${day} ${timePart}`;
+
+            await db.promise().query(`INSERT INTO in_progress (name, time, challenge_id) VALUES (?, ?, ?)`, [data.nick, timestamp, challengeId[0].id]);
             socket.emit('display-my-challenges');
             socket.broadcast.emit('display-my-challenges');
 
-            db.query(`SELECT * FROM in_progress WHERE challenge_id = ?`, [challengeId], (err, results) => {
-                if (results.length === 2) {
-                    db.query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
-                    db.query(`DELETE FROM in_progress WHERE challenge_id = ?`, [challengeId]);
-                    io.emit('server-announcement', `${data.nick} completed ${data.challengeTitle}!`);
-                    console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete. Deleted.`);
-                } else {
-                    io.emit('server-announcement', `${data.nick} completed ${data.challengeTitle}!`);
-                    console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
-                }
-            });
-        });
+            const [complete] = await db.promise().query(`SELECT * FROM in_progress WHERE challenge_id = ?`, [challengeId[0].id]);
+            if (complete.length === 2) {
+                await db.promise().query(`DELETE FROM challenges WHERE title = ?`, [data.challengeTitle]);
+                await db.promise().query(`DELETE FROM in_progress WHERE challenge_id = ?`, [challengeId]);
+                io.emit('server-announcement', `${data.nick} completed ${data.challengeTitle}! Challenge complete.`);
+                console.log(`${data.nick} completed ${data.challengeTitle}! Challenge complete.`);
+            } else {
+                io.emit('server-announcement', `${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
+                console.log(`${data.nick} completed ${data.challengeTitle}! Challenge still exists.`);
+            }
+        } catch (err) {
+            console.log("Error with challenge-done on server!")
+        }
     })
 
     socket.on('delete-account', async (nick) => {

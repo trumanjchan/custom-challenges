@@ -71,6 +71,7 @@ db.query(createChallengeUserTableSQL, (err) => {
 const createInProgressTableSQL = `
   CREATE TABLE IF NOT EXISTS in_progress (
     name VARCHAR(20) CHARACTER SET utf8mb4 NOT NULL,
+    time TIMESTAMP,
     challenge_id INT NOT NULL,
     FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE
   );
