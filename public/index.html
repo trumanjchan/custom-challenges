@@ -158,9 +158,16 @@
                                 container.appendChild(div2);
 
                                 let div3 = document.createElement('div');
-                                div3.textContent = poster.name + " challenged " + opponent.name;
-                                div3.className = "by";
+                                const date = new Date(challenge.time);
+                                const localTz = date.toLocaleString();
+                                div3.textContent = localTz;
+                                div3.className = "time";
                                 container.appendChild(div3);
+
+                                let div4 = document.createElement('div');
+                                div4.textContent = poster.name + " challenged " + opponent.name;
+                                div4.className = "by";
+                                container.appendChild(div4);
 
                                 if (!challenge.inProgress[0] || challenge.inProgress[0].name !== nick) {
                                     let button = document.createElement('button');
@@ -172,11 +179,11 @@
                                 }
 
                                 if (challenge.inProgress[0]) {
-                                    let div4 = document.createElement('div');
+                                    let div5 = document.createElement('div');
                                     const date = new Date(challenge.inProgress[0].time);
                                     const localTz = date.toLocaleString();
-                                    div4.textContent = "Completed by " + challenge.inProgress[0].name + " on " + localTz;
-                                    container.appendChild(div4);
+                                    div5.textContent = "Completed by " + challenge.inProgress[0].name + " - " + localTz;
+                                    container.appendChild(div5);
                                 }
 
                                 myChallenges.appendChild(container);

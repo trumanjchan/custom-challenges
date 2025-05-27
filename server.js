@@ -14,6 +14,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const saltRounds = 10;
 
 
+function getTimestamp() {
+    const time = new Date().toLocaleString('en-US', {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+    });
+    const [date, timePart] = time.split(', ');
+    const [month, day, year] = date.split('/');
+    const timestamp = `${year}-${month}-${day} ${timePart}`;
+
+    return timestamp;
+}
+
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
@@ -41,10 +58,11 @@ app.get('/:nickname/challenges', async (req, res) => {
                 let id = challengeResults[0].id;
                 let title = challengeResults[0].title;
                 let activity = challengeResults[0].activity;
+                let time = challengeResults[0].time;
                 const [playerResults] = await db.promise().query(`SELECT u.name, cu.role FROM challenge_user cu JOIN users u ON cu.user_id = u.id WHERE cu.challenge_id = ?`, [id]);
                 const [inProgress] = await db.promise().query(`SELECT name, time FROM in_progress WHERE challenge_id = ?`, [challengeId]);
 
-                return { title, activity, players: playerResults, inProgress };
+                return { title, activity, time, players: playerResults, inProgress };
             })
         );
 
@@ -105,7 +123,7 @@ io.on('connection', (socket) => {
         try {
             const [opponentId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.opponentInput]);
             if (opponentId[0].id && data.opponentInput !== data.poster) {
-                const [challengeId] = await db.promise().query(`INSERT INTO challenges (title, activity) VALUES (?, ?)`, [data.titleInput, data.activityInput]);
+                const [challengeId] = await db.promise().query(`INSERT INTO challenges (title, activity, time) VALUES (?, ?, ?)`, [data.titleInput, data.activityInput, getTimestamp()]);
 
                 const [posterId] = await db.promise().query(`SELECT * FROM users WHERE name = ?`, [data.poster]);
 
@@ -133,21 +151,7 @@ io.on('connection', (socket) => {
         try {
             const [challengeId] = await db.promise().query(`SELECT id FROM challenges WHERE title = ?`, [data.challengeTitle]);
 
-            const time = new Date().toLocaleString('en-US', {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: false
-            });
-            const [date, timePart] = time.split(', ');
-            const [month, day, year] = date.split('/');
-
-            const timestamp = `${year}-${month}-${day} ${timePart}`;
-
-            await db.promise().query(`INSERT INTO in_progress (name, time, challenge_id) VALUES (?, ?, ?)`, [data.nick, timestamp, challengeId[0].id]);
+            await db.promise().query(`INSERT INTO in_progress (name, time, challenge_id) VALUES (?, ?, ?)`, [data.nick, getTimestamp(), challengeId[0].id]);
             socket.emit('display-my-challenges');
             socket.broadcast.emit('display-my-challenges');
 

@@ -39,7 +39,8 @@ const createChallengesTableSQL = `
   CREATE TABLE IF NOT EXISTS challenges (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(32) NOT NULL,
-    activity VARCHAR(64) NOT NULL
+    activity VARCHAR(64) NOT NULL,
+    time TIMESTAMP
   );
 `;
 db.query(createChallengesTableSQL, (err) => {
