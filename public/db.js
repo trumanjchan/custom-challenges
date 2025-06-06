@@ -7,8 +7,8 @@ export const db = mysql.createConnection({
     user: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
-    ssl: {
-        rejectUnauthorized: true
+	ssl: {
+    	minVersion: 'TLSv1.2'
     }
 })
 

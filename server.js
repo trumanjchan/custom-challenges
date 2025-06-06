@@ -17,7 +17,7 @@ const saltRounds = 10;
 (async () => {
     try {
         await connectToDB();
-
+        await db.promise().query("SELECT 1");
 
         function getTimestamp() {
             const time = new Date().toLocaleString('en-US', {
@@ -195,6 +195,8 @@ const saltRounds = 10;
             });
 
             socket.on('disconnect', () => {
+                console.log('a user disconnected');
+
                 if (socket.nickname) {
                     db.query(`UPDATE users SET is_online = ? WHERE name = ?`, [false, socket.nickname]);
                     socket.broadcast.emit('display-all-users');
@@ -205,9 +207,10 @@ const saltRounds = 10;
         });
 
         server.listen(port, () => {
-            console.log(`server running at http://localhost:${port}`);
+            console.log(`server running on port ${port}`);
         });
     } catch (err) {
         console.error('Failed to start server due to DB error:', err);
+        process.exit(1);
     }
 })();
